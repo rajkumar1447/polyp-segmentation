@@ -1,3 +1,4 @@
 # Ignore the virtual environment
 venv/
 data/
+__pycache__/
