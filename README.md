@@ -3,7 +3,7 @@
 # Project Setup Guide
 
 # Install Python
-- **Windows:** Download the installer from [python.org]
+- **Windows:** Download the installer from [python.org] : version: 3.10.10
 
 **Verify installation:**
 Open your terminal and run: python --version
