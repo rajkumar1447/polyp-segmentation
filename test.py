@@ -2,14 +2,17 @@
 import os, cv2, numpy as np
 import tensorflow as tf
 from glob import glob
-from metrics import dice_coef, iou
+from metrics import dice_coef, iou, bce_dice_loss
 
 # Model
 model = tf.keras.models.load_model(
     "files/model.h5",
-    custom_objects={"bce_dice_loss":None, "dice_coef":dice_coef, "iou":iou}
+    custom_objects={
+        "bce_dice_loss": bce_dice_loss,
+        "dice_coef": dice_coef,
+        "iou": iou
+    }
 )
-
 images = sorted(glob("data/images/*"))
 masks = sorted(glob("data/masks/*"))
 

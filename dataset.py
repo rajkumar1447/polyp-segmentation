@@ -27,7 +27,7 @@ def read_mask(path):
 
 # Function to do the augment
 def augment(x, y):
-    if np.random.rend() > 0.5:
+    if np.random.rand() > 0.5:
         x = np.fliplr(x)
         y = np.fliplr(y)
     if np.random.rand() > 0.5:
@@ -52,6 +52,8 @@ def tf_parse(x, y):
 # Function to prepare the dataset based on the tf
 def tf_dataset(X, Y, batch):
     ds = tf.data.Dataset.from_tensor_slices((X, Y))
-    ds = ds.map(tf_parse)
-    ds = ds.batch(batch).prefetch(10)
+    ds = ds.shuffle(buffer_size=100)
+    ds = ds.map(tf_parse, num_parallel_calls=tf.data.AUTOTUNE)
+    ds = ds.batch(batch)
+    ds = ds.prefetch(tf.data.AUTOTUNE)
     return ds

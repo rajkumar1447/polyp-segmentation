@@ -24,5 +24,5 @@ def bce_dice_loss(y_true, y_pred):
 # Function to calculate the IOU
 def iou(y_true, y_pred):
     intersection = tf.reduce_sum(y_true * y_pred)
-    union = tf.reduce_sum(y_true * y_pred)
+    union = tf.reduce_sum(y_true) + tf.reduce_sum(y_pred) - intersection
     return (intersection + smooth) / (union + smooth)

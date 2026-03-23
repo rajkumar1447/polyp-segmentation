@@ -20,6 +20,6 @@ def gradcam(model, img):
     cam = np.dot(conv_out[0], weights)
 
     cam = np.maximum(cam,0)
-    cam = cam / cam.max()
+    cam = cam / (cam.max() + 1e-8)
 
     return cam

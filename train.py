@@ -6,6 +6,13 @@ import tensorflow as tf
 from dataset import tf_dataset
 from model import unet3plus
 from metrics import bce_dice_loss, dice_coef, iou
+from utils import set_seed, plot_history
+
+set_seed(42)
+
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    tf.config.experimental.set_memory_growth(gpus[0], True)
 
 # Function to create Dir
 def create_dir(path):
@@ -34,12 +41,21 @@ model.compile(
     metrics=[dice_coef, iou]
 )
 
-create_dir("files")
-
+# Callbacks
 callbacks = [
     tf.keras.callbacks.ModelCheckpoint("files/model.h5", save_best_only=True),
     tf.keras.callbacks.ReduceLROnPlateau(patience=5),
-    tf.keras.callbacks.EarlyStopping(patience=10)
+    tf.keras.callbacks.EarlyStopping(patience=10),
+    tf.keras.callbacks.CSVLogger("files/log.csv")
 ]
 
-model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, callbacks=callbacks)
+# Training
+history = model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=EPOCHS,
+    callbacks=callbacks
+)
+
+# Plot Results
+plot_history(history)
