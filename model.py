@@ -1,50 +1,72 @@
 # Import Necessary Libraries
 import tensorflow as tf
-import tensorflow.keras.layers as L
+from tensorflow.keras import layers, Model
 from tensorflow.keras.applications import ResNet50
 
-# Function to add the conolutional Initial Layers.
+# Function to do the decoding.
 def conv_block(x, filters):
-    x = L.Conv2D(filters, 3, padding="same")(x)
-    x = L.BatchNormalization()(x)
-    x = L.Activation("relu")(x)
+    x = layers.Conv2D(filters, 3, padding="same")(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
 
-    x = L.Conv2D(filters, 3, padding="same")(x)
-    x = L.BatchNormalization()(x)
-    x = L.Activation("relu")(x)
-
-    x = L.Dropout(0.3)(x)
+    x = layers.Conv2D(filters, 3, padding="same")(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
     return x
 
+# Function to add the conolutional Initial Layers.
+def attention_block(x, g, filters):
+    theta_x = layers.Conv2D(filters, 1, padding="same")(x)
+    phi_g = layers.Conv2D(filters, 1, padding="same")(g)
+
+    add = layers.Add()([theta_x, phi_g])
+    act = layers.Activation("relu")(add)
+
+    psi = layers.Conv2D(1, 1, padding="same")(act)
+    psi = layers.Activation("sigmoid")(psi)
+
+    out = layers.Multiply()([x, psi])
+    return out
+
 # Function to add the Backbone Main model. [UNet3+]
-def unet3plus(input_shape):
-    inputs = L.Input(input_shape)
+def decoder_block(x, skip, filters):
+    x = layers.UpSampling2D((2,2))(x)
 
-    encoder = ResNet50(include_top=False, weights="imagenet", input_tensor=inputs)
+    if skip is not None:
+        skip = attention_block(skip, x, filters)
+        x = layers.Concatenate()([x, skip])
 
-    e1 = encoder.get_layer("input_1").output
-    e2 = encoder.get_layer("conv1_relu").output
-    e3 = encoder.get_layer("conv2_block3_out").output
-    e4 = encoder.get_layer("conv3_block4_out").output
-    e5 = encoder.get_layer("conv4_block6_out").output
+    x = layers.Conv2D(filters, 3, padding="same")(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
 
-    def up(x, scale): return L.UpSampling2D((scale, scale), interpolation="bilinear")(x)
-    def down(x, scale): return L.MaxPool2D((scale, scale))(x)
+    x = layers.Conv2D(filters, 3, padding="same")(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
 
-    def fuse(e1,e2,e3,e4,e5):
-        return L.Concatenate()([
-            conv_block(e1,64),
-            conv_block(e2,64),
-            conv_block(e3,64),
-            conv_block(e4,64),
-            conv_block(e5,64)
-        ])
+    return x
 
-    d4 = fuse(down(e1,8), down(e2,4), down(e3,2), e4, up(e5,2))
-    d3 = fuse(down(e1,4), down(e2,2), e3, up(d4,2), up(e5,4))
-    d2 = fuse(down(e1,2), e2, up(d3,2), up(d4,4), up(e5,8))
-    d1 = fuse(e1, up(d2,2), up(d3,4), up(d4,8), up(e5,16))
+# Function to build model
+def build_model():
+    inputs = layers.Input((256, 256, 3))
 
-    output = L.Conv2D(1, 1, activation="sigmoid")(d1)
+    base = ResNet50(weights="imagenet", include_top=False, input_tensor=inputs)
 
-    return tf.keras.Model(inputs, output)
+    s1 = base.get_layer("conv1_relu").output
+    s2 = base.get_layer("conv2_block3_out").output
+    s3 = base.get_layer("conv3_block4_out").output
+    s4 = base.get_layer("conv4_block6_out").output
+    b1 = base.get_layer("conv5_block3_out").output
+
+    # Decoder with dense skip connections
+    d1 = decoder_block(b1, s4, 512)
+    d2 = decoder_block(d1, s3, 256)
+    d3 = decoder_block(d2, s2, 128)
+    d4 = decoder_block(d3, s1, 64)
+
+    # Extra refinement layer (important improvement)
+    d5 = conv_block(layers.UpSampling2D((2,2))(d4), 32)
+
+    outputs = layers.Conv2D(1, 1, activation="sigmoid")(d5)
+
+    return Model(inputs, outputs)

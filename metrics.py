@@ -17,9 +17,13 @@ def dice_loss(y_true, y_pred):
     return 1.0 - dice_coef(y_true, y_pred)
 
 # Function to calculate binary cross entropy dice loss
-def bce_dice_loss(y_true, y_pred):
+def focal_loss(y_true, y_pred, alpha=0.25, gamma=2):
     bce = tf.keras.losses.binary_crossentropy(y_true, y_pred)
-    return bce + dice_loss(y_true, y_pred)
+    pt = tf.exp(-bce)
+    return alpha * (1 - pt) ** gamma * bce
+
+def combined_loss(y_true, y_pred):
+    return focal_loss(y_true, y_pred) + dice_loss(y_true, y_pred)
 
 # Function to calculate the IOU
 def iou(y_true, y_pred):

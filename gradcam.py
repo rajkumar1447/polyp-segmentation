@@ -2,24 +2,24 @@
 import tensorflow as tf
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
 
 # Function for the gradcam.
-def gradcam(model, img):
+def grad_cam(model, image, layer_name):
     grad_model = tf.keras.models.Model(
         [model.inputs],
-        [model.layers[-3].output, model.output]
+        [model.get_layer(layer_name).output, model.output]
     )
 
     with tf.GradientTape() as tape:
-        conv_out, pred = grad_model(img)
-        loss = tf.reduce_mean(pred)
+        conv_outputs, predictions = grad_model(image)
+        loss = tf.reduce_sum(predictions)
 
-    grads = tape.gradient(loss, conv_out)
-    weights = tf.reduce_mean(grads, axis=(0,1,2))
-    cam = np.dot(conv_out[0], weights)
+    grads = tape.gradient(loss, conv_outputs)
+    weights = tf.reduce_mean(grads, axis=(0, 1, 2))
 
-    cam = np.maximum(cam,0)
+    cam = tf.reduce_sum(weights * conv_outputs[0], axis=-1)
+
+    cam = np.maximum(cam, 0)
     cam = cam / (cam.max() + 1e-8)
 
-    return cam
+    return cv2.resize(cam.numpy(), (256, 256))

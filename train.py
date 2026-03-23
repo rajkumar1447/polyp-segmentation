@@ -4,8 +4,8 @@ from glob import glob
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from dataset import tf_dataset
-from model import unet3plus
-from metrics import bce_dice_loss, dice_coef, iou
+from model import build_model
+from metrics import combined_loss, dice_coef, iou
 from utils import set_seed, plot_history
 
 set_seed(42)
@@ -20,7 +20,7 @@ def create_dir(path):
         os.makedirs(path)
 
 # Global
-BATCH = 4
+BATCH = 8
 EPOCHS = 80
 
 image_paths = sorted(glob("data/images/*"))
@@ -33,18 +33,23 @@ train_x, val_x, train_y, val_y = train_test_split(
 train_ds = tf_dataset(train_x, train_y, BATCH)
 val_ds = tf_dataset(val_x, val_y, BATCH)
 
-model = unet3plus((512,512,3))
+model = build_model()
 
 model.compile(
     optimizer=tf.keras.optimizers.Adam(1e-4),
-    loss=bce_dice_loss,
+    loss=combined_loss,
     metrics=[dice_coef, iou]
 )
 
 # Callbacks
 callbacks = [
     tf.keras.callbacks.ModelCheckpoint("files/model.h5", save_best_only=True),
-    tf.keras.callbacks.ReduceLROnPlateau(patience=5),
+    tf.keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss',
+        factor=0.3,
+        patience=3,
+        min_lr=1e-6
+    ),
     tf.keras.callbacks.EarlyStopping(patience=10),
     tf.keras.callbacks.CSVLogger("files/log.csv")
 ]

@@ -2,13 +2,13 @@
 import os, cv2, numpy as np
 import tensorflow as tf
 from glob import glob
-from metrics import dice_coef, iou, bce_dice_loss
+from metrics import dice_coef, iou, combined_loss
 
 # Model
 model = tf.keras.models.load_model(
     "files/model.h5",
     custom_objects={
-        "bce_dice_loss": bce_dice_loss,
+        "combined_loss": combined_loss,
         "dice_coef": dice_coef,
         "iou": iou
     }
@@ -20,12 +20,12 @@ dice_scores, iou_scores = [], []
 
 for x, y in zip(images, masks):
     img = cv2.imread(x)
-    img = cv2.resize(img,(512,512))/255.0
+    img = cv2.resize(img,(256,256))/255.0
     pred = model.predict(np.expand_dims(img,0))[0]
     pred = (pred > 0.5).astype(np.float32)
 
     gt = cv2.imread(y,0)
-    gt = cv2.resize(gt,(512,512))/255.0
+    gt = cv2.resize(gt,(256,256))/255.0
     gt = np.expand_dims(gt,-1)
 
     d = dice_coef(gt, pred).numpy()
