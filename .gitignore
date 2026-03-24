@@ -2,4 +2,4 @@
 venv/
 data/
 __pycache__/
-files/
+files/model.h5
