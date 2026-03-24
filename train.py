@@ -21,7 +21,7 @@ def create_dir(path):
 
 # Global
 BATCH = 8
-EPOCHS = 80
+EPOCHS = 30
 
 image_paths = sorted(glob("data/images/*"))
 mask_paths = sorted(glob("data/masks/*"))

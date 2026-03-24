@@ -21,3 +21,22 @@ Open your terminal and run: python --version
 # Install Requirements
     pip install --upgrade pip
     pip install -r requirements.txt
+
+# DATASET
+https://datasets.simula.no/kvasir-seg/Kvasir-SEG.zip
+
+
+# Training
+command: python train.py
+
+# Training Details:
+    Input size: 256×256
+    Optimizer: Adam
+    Learning rate: 3e-5
+    Loss function: Dice-based loss
+    
+# Augmentations:
+    Horizontal/vertical flips
+    Rotation
+    Scaling
+    Color jitter
